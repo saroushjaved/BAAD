@@ -1,0 +1,13 @@
+* text=auto
+*.md text eol=lf
+*.tcl text eol=lf
+*.py text eol=lf
+*.v text eol=lf
+*.sv text eol=lf
+*.m text eol=lf
+*.ps1 text eol=crlf
+*.cpp text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.mem text eol=lf
+*.coe text eol=lf

@@ -1,0 +1,13 @@
+# Integration validation review
+
+The generated release project keeps the existing ZCU102 processing chain. The export uses relative coefficient paths; the resolved coefficient bytes match the analysis hash. The build script refuses to overwrite an existing release project; use the logged resume flow after verifying no process owns its runs.
+
+Reviewed pre-implementation messages:
+
+- `BD 41-1347 DATA_FIFO/s_axis_aresetn asynchronous reset source`: the release deliberately pulses this reset to discard queued snapshot words before starting a new bounded DMA. `capture_flush` is a register in `dds_axi_config_regs_0`; that register, the FIFO S_AXIS port and the snapshot producer all use the same 62 MHz clock. Its assertion and removal therefore occur on 62 MHz clock edges, and the normal design reset is still `proc_sys_reset_0/peripheral_aresetn`. The pulse is held for 10 us by firmware. The routed design has positive setup/hold timing, all 12 bus-skew constraints met, and zero unsafe/unknown CDC endpoints. This warning is retained as an intentional software-flush implementation and must be rechecked if the control or FIFO clocking changes.
+- `BD 41-237 MAX_BURST_LENGTH 1 vs256` at DDS registers/AXI clock converter: both endpoints implement AXI4-Lite (`CONFIG.PROTOCOL AXI4LITE` on the converter; register RTL has no AWLEN/ARLEN/WLAST burst signals). This is a propagated interface metadata mismatch, not an enabled burst transaction. Independent AW/W, stalled responses and byte strobes are exercised in `tb_axi_config`. No exception to actual AXI-Lite behavior is made.
+- `BD 41-237 AWUSER_WIDTH/ARUSER_WIDTH 1 vs0` on the existing PS HPC0 memory connection: the simple DMA has no user sideband; the PS interface accepts the generated default. The release does not add or rely on coherent-cache user attributes; firmware uses explicit cache maintenance and a low-DDR buffer. Actual DMA/cache behavior still requires board testing.
+- Board catalog warnings for unrelated Versal parts are installed-catalog availability warnings; the selected part is `xczu9eg-ffvb1156-2-e`, board `xilinx.com:zcu102:part0:3.4`.
+- Startup Tcl user-app `Common17-1257` / `17-356` messages (`C` directory creation) are installation configuration warnings/errors observed before scripts. Completion is determined by explicit run results and signoff, not process exit alone. These messages do not establish a valid hardware build.
+
+Post-route timing, methodology, DRC and CDC are reviewed by `scripts/review_release_reports.ps1`, which fails closed and writes the hash-locked `release_review.json`. This file does not waive timing failures, missing clocks, unsafe crossings or absent artifacts.
